@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "NRL Live",
+    "slug": "nrl-live",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#020203",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#020203"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.nrllive.app"
+    },
+    "android": {
+      "package": "com.nrllive.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#020203",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-image",
+      "expo-secure-store",
+      [
+        "react-native-reanimated"
+      ]
+    ],
+    "scheme": "nrllive",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
