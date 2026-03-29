@@ -30,10 +30,7 @@
     "plugins": [
       "expo-router",
       "expo-image",
-      "expo-secure-store",
-      [
-        "react-native-reanimated"
-      ]
+      "expo-secure-store"
     ],
     "scheme": "nrllive",
     "experiments": {

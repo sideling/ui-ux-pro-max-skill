@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NRL Live — UI Preview</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-deep:    #020203;
+    --bg-base:    #050506;
+    --bg-elevated:#0a0a0c;
+    --bg-card:    #0e0e11;
+    --surface:    rgba(255,255,255,0.05);
+    --border:     rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.16);
+    --fg:         #EDEDEF;
+    --muted:      #8A8F98;
+    --subtle:     #4A4F5C;
+    --accent:     #F97316;
+    --accent-dim: rgba(249,115,22,0.15);
+    --accent-glow:rgba(249,115,22,0.3);
+    --live:       #EF4444;
+    --live-dim:   rgba(239,68,68,0.15);
+    --positive:   #22C55E;
+    --negative:   #F43F5E;
+    --r-card:     16px;
+    --r-input:    12px;
+    --r-pill:     999px;
+  }
+
+  body {
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    padding: 40px 20px 60px;
+    gap: 24px;
+  }
+
+  /* ── Page Title ── */
+  .page-title {
+    color: var(--fg);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  /* ── Screen Selector ── */
+  .screen-nav {
+    display: flex;
+    gap: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    padding: 4px;
+  }
+  .screen-nav button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 6px 16px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .screen-nav button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Phone Shell ── */
+  .phone {
+    width: 375px;
+    height: 780px;
+    background: var(--bg-deep);
+    border-radius: 40px;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.8),
+      0 40px 80px rgba(0,0,0,0.8),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* Notch */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #000;
+    border-radius: 14px;
+    z-index: 100;
+  }
+
+  /* ── Screen ── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-deep);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .screen.active { display: flex; }
+
+  /* ── Scrollable Content Area ── */
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .scroll-area::-webkit-scrollbar { display: none; }
+
+  /* ── Typography ── */
+  .font-display {
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    font-stretch: condensed;
+  }
+  .label-xs {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .label-sm  { font-size: 12px; color: var(--muted); }
+  .label-md  { font-size: 13px; font-weight: 600; color: var(--fg); }
+  .body-text { font-size: 14px; color: var(--fg); line-height: 1.5; }
+
+  /* ── LIVE Badge ── */
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--live-dim);
+    border: 1px solid var(--live);
+    border-radius: var(--r-pill);
+    padding: 2px 8px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--live);
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--live);
+    border-radius: 50%;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.25; }
+  }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    height: 64px;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 8px;
+    flex-shrink: 0;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+  }
+  .tab-icon { font-size: 20px; line-height: 1; }
+  .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--subtle);
+  }
+  .tab-item.active .tab-label { color: var(--accent); }
+  .tab-item.active .tab-icon  { filter: sepia(1) saturate(5) hue-rotate(-20deg); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--r-card);
+    border: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* ── Section Headers ── */
+  .section-hdr {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 16px;
+    margin-top: 4px;
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 1 — MATCHES HUB
+  ═══════════════════════════════════════ */
+  #screen-matches .page-header {
+    padding: 52px 16px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  #screen-matches .page-header h1 {
+    font-size: 28px;
+    color: var(--fg);
+    line-height: 1;
+  }
+  #screen-matches .page-header p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .match-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .match-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .active-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .team-block {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .team-block.right {
+    justify-content: flex-end;
+    flex-direction: row-reverse;
+  }
+  .team-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .team-short {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--fg);
+    letter-spacing: -0.5px;
+  }
+  .score-center {
+    text-align: center;
+    min-width: 80px;
+  }
+  .score-big {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--fg);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .score-big .dash { color: var(--muted); font-weight: 300; }
+  .minute-text {
+    font-size: 11px;
+    color: var(--live);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .vs-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .kickoff-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .full-names {
+    display: flex;
+    justify-content: space-between;
+  }
+  .full-name {
+    font-size: 10px;
+    color: var(--subtle);
+    max-width: 45%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .full-name.right { text-align: right; }
+  .venue-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    color: var(--subtle);
+  }
+  .chat-cta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .chat-cta span { flex: 1; }
+
+  /* ═══════════════════════════════════════
+     SCREEN 2 — CHAT ROOM
+  ═══════════════════════════════════════ */
+  #screen-chat .chat-header {
+    padding: 52px 12px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .back-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: var(--fg); flex-shrink: 0;
+    cursor: pointer;
+  }
+  .chat-match-info { flex: 1; min-width: 0; }
+  .chat-match-title {
+    font-size: 15px; font-weight: 800;
+    color: var(--fg); letter-spacing: -0.3px;
+  }
+  .chat-match-meta {
+    display: flex; align-items: center;
+    gap: 6px; margin-top: 2px;
+    flex-wrap: wrap;
+  }
+  .chat-score {
+    font-size: 13px; font-weight: 800;
+    color: var(--fg);
+  }
+  .chat-minute { font-size: 11px; color: var(--live); font-weight: 600; }
+  .watching {
+    display: flex; align-items: center;
+    gap: 3px; font-size: 10px; color: var(--muted);
+  }
+
+  /* Top Comments Strip */
+  .top-strip {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0 10px;
+    flex-shrink: 0;
+  }
+  .top-strip-label {
+    display: flex; align-items: center;
+    gap: 4px; padding: 0 14px 8px;
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 0.8px; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .top-chips {
+    display: flex; gap: 8px;
+    padding: 0 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .top-chips::-webkit-scrollbar { display: none; }
+  .top-chip {
+    flex-shrink: 0;
+    width: 168px;
+    background: var(--bg-card);
+    border: 1px solid rgba(249,115,22,0.3);
+    border-radius: var(--r-card);
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .chip-header {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px;
+  }
+  .chip-likes { color: var(--positive); font-weight: 700; }
+  .chip-user  { color: var(--muted); }
+  .chip-body  { font-size: 11px; color: var(--fg); line-height: 1.4; }
+
+  /* Chat List */
+  .chat-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 8px 0;
+    scrollbar-width: none;
+  }
+  .chat-list::-webkit-scrollbar { display: none; }
+
+  .msg-row {
+    display: flex;
+    gap: 10px;
+    padding: 8px 14px;
+    align-items: flex-start;
+  }
+  .msg-row.top-msg {
+    background: var(--accent-dim);
+    border-left: 2.5px solid var(--accent);
+    margin: 0 8px;
+    border-radius: 0 var(--r-card) var(--r-card) 0;
+    padding-left: 10px;
+  }
+  .avatar-circle {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
+  }
+  .msg-content { flex: 1; min-width: 0; }
+  .msg-header {
+    display: flex; align-items: center;
+    gap: 6px; margin-bottom: 3px;
+  }
+  .msg-username {
+    font-size: 12px; font-weight: 700; color: var(--fg);
+  }
+  .msg-time { font-size: 10px; color: var(--subtle); }
+  .msg-body {
+    font-size: 13px; color: var(--fg);
+    line-height: 1.45;
+  }
+  .msg-actions {
+    display: flex; align-items: center;
+    gap: 14px; margin-top: 6px;
+  }
+  .vote-btn {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 11px; cursor: pointer;
+  }
+  .vote-btn.liked   { color: var(--positive); }
+  .vote-btn.neutral { color: var(--muted); }
+  .vote-btn.disliked{ color: var(--negative); }
+  .reply-btn {
+    font-size: 11px; color: var(--muted); cursor: pointer;
+  }
+
+  /* Reply indent */
+  .reply-indent {
+    margin-left: 14px;
+    padding: 6px 10px;
+    background: var(--surface);
+    border-radius: 8px;
+    margin-top: 4px;
+    border-left: 2px solid var(--accent);
+  }
+  .reply-indent .msg-username { color: var(--accent); font-size: 11px; }
+  .reply-indent .msg-body     { font-size: 12px; color: var(--muted); }
+
+  /* Chat Input */
+  .chat-input-area {
+    flex-shrink: 0;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border);
+    padding: 10px 12px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .reply-bar {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--accent-dim);
+    border-radius: 8px; padding: 6px 8px;
+    font-size: 11px; color: var(--muted);
+  }
+  .reply-bar strong { color: var(--accent); }
+  .input-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-input);
+    padding: 8px 10px;
+  }
+  .chat-textinput {
+    flex: 1;
+    font-size: 13px; color: var(--muted);
+    border: none; background: none; outline: none;
+    font-family: inherit;
+  }
+  .send-btn {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 0 12px var(--accent-glow);
+    flex-shrink: 0;
+  }
+  .cooldown-track {
+    height: 2px;
+    background: var(--surface);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .cooldown-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 1px;
+    width: 40%;
+    animation: cooldown 3s linear forwards;
+  }
+  @keyframes cooldown {
+    from { width: 40%; }
+    to   { width: 0%; }
+  }
+
+  /* ═══════════════════════════════════════
+     SCREEN 3 — LEADERBOARD
+  ═══════════════════════════════════════ */
+  #screen-leader .page-header {
+    padding: 52px 16px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  #screen-leader .page-header h1 {
+    font-size: 28px; color: var(--fg); line-height: 1;
+  }
+  #screen-leader .page-header p {
+    font-size: 12px; color: var(--muted); margin-top: 3px;
+  }
+
+  .period-tabs {
+    display: flex; gap: 6px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .period-tab {
+    flex: 1; text-align: center;
+    padding: 6px 4px;
+    border-radius: var(--r-pill);
+    background: var(--surface);
+    font-size: 11px; font-weight: 700;
+    color: var(--muted); cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+  }
+  .period-tab.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .lb-list { display: flex; flex-direction: column; padding-bottom: 16px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lb-row.me { background: var(--accent-dim); }
+  .rank-col { width: 28px; text-align: center; flex-shrink: 0; }
+  .rank-num {
+    font-size: 12px; font-weight: 800;
+    color: var(--muted);
+  }
+  .trophy { font-size: 16px; line-height: 1; }
+  .lb-name-col { flex: 1; min-width: 0; }
+  .lb-username {
+    font-size: 14px; font-weight: 600; color: var(--fg);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .lb-username .you-tag { color: var(--accent); font-size: 11px; font-weight: 400; }
+  .lb-likes {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 13px; font-weight: 700; color: var(--positive);
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page-title">NRL Live — UI Preview</div>
+
+<!-- Screen Navigation -->
+<div class="screen-nav">
+  <button class="active" onclick="showScreen('matches', this)">Matches</button>
+  <button onclick="showScreen('chat', this)">Chat Room</button>
+  <button onclick="showScreen('leader', this)">Leaderboard</button>
+</div>
+
+<!-- Phone Mockup -->
+<div class="phone">
+
+  <!-- ═══════ SCREEN 1: MATCHES HUB ═══════ -->
+  <div class="screen active" id="screen-matches">
+    <div class="page-header">
+      <h1 class="font-display">NRL LIVE</h1>
+      <p>Round 1 · 2026</p>
+    </div>
+
+    <div class="scroll-area">
+      <div style="display:flex;flex-direction:column;gap:10px;padding:14px 12px 80px;">
+
+        <!-- Live Section Label -->
+        <div class="section-hdr" style="color:var(--live);">🔴 LIVE NOW — 2 MATCHES</div>
+
+        <!-- Live Match 1 -->
+        <div class="card">
+          <div class="match-status-row">
+            <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+            <div class="active-count">👥 <span>1,204</span></div>
+          </div>
+          <div class="score-row">
+            <div class="team-block">
+              <div class="team-dot" style="background:#800000;"></div>
+              <span class="team-short">BRI</span>
+            </div>
+            <div class="score-center">
+              <div class="score-big">18<span class="dash"> – </span>12</div>
+              <div class="minute-text">65'</div>
+            </div>
+            <div class="team-block right">
+              <span class="team-short">SYD</span>
+              <div class="team-dot" style="background:#000033;"></div>
+            </div>
+          </div>
+          <div class="full-names">
+            <span class="full-name">Brisbane Broncos</span>
+            <span class="full-name right">Sydney Roosters</span>
+          </div>
+          <div class="venue-row">📍 <span>Suncorp Stadium</span></div>
+          <div class="chat-cta">
+            <span>💬</span><span>Join live chat</span><span>›</span>
+          </div>
+        </div>
+
+        <!-- Live Match 2 -->
+        <div class="card">
+          <div class="match-status-row">
+            <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+            <div class="active-count">👥 <span>876</span></div>
+          </div>
+          <div class="score-row">
+            <div class="team-block">
+              <div class="team-dot" style="background:#460063;"></div>
+              <span class="team-short">MEL</span>
+            </div>
+            <div class="score-center">
+              <div class="score-big">6<span class="dash"> – </span>10</div>
+              <div class="minute-text">42'</div>
+            </div>
+            <div class="team-block right">
+              <span class="team-short">PEN</span>
+              <div class="team-dot" style="background:#003087;"></div>
+            </div>
+          </div>
+          <div class="full-names">
+            <span class="full-name">Melbourne Storm</span>
+            <span class="full-name right">Penrith Panthers</span>
+          </div>
+          <div class="venue-row">📍 <span>AAMI Park</span></div>
+          <div class="chat-cta">
+            <span>💬</span><span>Join live chat</span><span>›</span>
+          </div>
+        </div>
+
+        <!-- Upcoming Section -->
+        <div class="section-hdr" style="margin-top:6px;">UPCOMING &amp; RECENT</div>
+
+        <!-- Upcoming 1 -->
+        <div class="card">
+          <div class="match-status-row">
+            <span class="label-xs">KICK OFF 7:30 PM</span>
+            <div class="active-count">👥 <span>—</span></div>
+          </div>
+          <div class="score-row">
+            <div class="team-block">
+              <div class="team-dot" style="background:#007A3D;"></div>
+              <span class="team-short">SOU</span>
+            </div>
+            <div class="score-center"><span class="vs-text">VS</span></div>
+            <div class="team-block right">
+              <span class="team-short">CRO</span>
+              <div class="team-dot" style="background:#009EE2;"></div>
+            </div>
+          </div>
+          <div class="full-names">
+            <span class="full-name">South Sydney</span>
+            <span class="full-name right">Cronulla Sharks</span>
+          </div>
+          <div class="venue-row">📍 <span>Accor Stadium</span></div>
+          <div class="chat-cta">
+            <span>💬</span><span>Pre-match chat</span><span>›</span>
+          </div>
+        </div>
+
+        <!-- Upcoming 2 -->
+        <div class="card">
+          <div class="match-status-row">
+            <span class="label-xs">KICK OFF 9:45 PM</span>
+            <div class="active-count">👥 <span>—</span></div>
+          </div>
+          <div class="score-row">
+            <div class="team-block">
+              <div class="team-dot" style="background:#4B0082;"></div>
+              <span class="team-short">MAN</span>
+            </div>
+            <div class="score-center"><span class="vs-text">VS</span></div>
+            <div class="team-block right">
+              <span class="team-short">WST</span>
+              <div class="team-dot" style="background:#FF7F00;"></div>
+            </div>
+          </div>
+          <div class="full-names">
+            <span class="full-name">Manly Sea Eagles</span>
+            <span class="full-name right">Wests Tigers</span>
+          </div>
+          <div class="venue-row">📍 <span>4 Pines Park</span></div>
+          <div class="chat-cta">
+            <span>💬</span><span>Pre-match chat</span><span>›</span>
+          </div>
+        </div>
+
+        <!-- Fulltime -->
+        <div class="card" style="opacity:0.7;">
+          <div class="match-status-row">
+            <span class="label-xs" style="color:var(--subtle);">FULL TIME</span>
+            <div class="active-count">👥 <span>2,341</span></div>
+          </div>
+          <div class="score-row">
+            <div class="team-block">
+              <div class="team-dot" style="background:#003DA5;"></div>
+              <span class="team-short">CBY</span>
+            </div>
+            <div class="score-center">
+              <div class="score-big" style="color:var(--muted)">22<span class="dash"> – </span>16</div>
+            </div>
+            <div class="team-block right">
+              <span class="team-short">SGI</span>
+              <div class="team-dot" style="background:#CE1126;"></div>
+            </div>
+          </div>
+          <div class="full-names">
+            <span class="full-name">Canterbury Bulldogs</span>
+            <span class="full-name right">St George Illawarra</span>
+          </div>
+          <div class="chat-cta">
+            <span>💬</span><span>Match chat</span><span>›</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item active">
+        <div class="tab-icon">🏈</div>
+        <div class="tab-label">Matches</div>
+      </div>
+      <div class="tab-item">
+        <div class="tab-icon">🏆</div>
+        <div class="tab-label">Rankings</div>
+      </div>
+      <div class="tab-item">
+        <div class="tab-icon">📊</div>
+        <div class="tab-label">Ladder</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ SCREEN 2: CHAT ROOM ═══════ -->
+  <div class="screen" id="screen-chat">
+
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="back-btn">‹</div>
+      <div class="chat-match-info">
+        <div class="chat-match-title">BRI vs SYD</div>
+        <div class="chat-match-meta">
+          <span class="live-badge" style="font-size:9px;padding:2px 6px;"><span class="live-dot"></span>LIVE</span>
+          <span class="chat-score">18 – 12</span>
+          <span class="chat-minute">65'</span>
+          <span class="watching">👥 1,204</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Comments Strip -->
+    <div class="top-strip">
+      <div class="top-strip-label">🏆 TOP COMMENTS</div>
+      <div class="top-chips">
+        <div class="top-chip">
+          <div class="chip-header">
+            <span class="chip-likes">👍 45</span>
+            <span class="chip-user">Fan#A3F2</span>
+          </div>
+          <div class="chip-body">Broncos are on fire tonight! That Cobbo try was INSANE 🔥</div>
+        </div>
+        <div class="top-chip">
+          <div class="chip-header">
+            <span class="chip-likes">👍 31</span>
+            <span class="chip-user">BroncosLifer</span>
+          </div>
+          <div class="chip-body">Roosters defence is leaking. Second half belongs to BRI</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Messages (inverted — newest at bottom visually) -->
+    <div class="chat-list">
+
+      <!-- Message 1 — regular, most recent -->
+      <div class="msg-row">
+        <div class="avatar-circle" style="background:#3B82F6;">RK</div>
+        <div class="msg-content">
+          <div class="msg-header">
+            <span class="msg-username">RoosterKing</span>
+            <span class="msg-time">8:12 PM</span>
+          </div>
+          <div class="msg-body">Come on Roosters, wake up!! Still 8 minutes left 💪</div>
+          <div class="msg-actions">
+            <div class="vote-btn neutral">👍 3</div>
+            <div class="vote-btn neutral">👎</div>
+            <div class="reply-btn">↩ Reply</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message 2 — with reply -->
+      <div class="msg-row">
+        <div class="avatar-circle" style="background:#8B5CF6;">NQ</div>
+        <div class="msg-content">
+          <div class="msg-header">
+            <span class="msg-username">NQCowboy</span>
+            <span class="msg-time">8:11 PM</span>
+          </div>
+          <div class="reply-indent">
+            <div class="msg-username">Fan#A3F2</div>
+            <div class="msg-body">Broncos are on fire tonight!</div>
+          </div>
+          <div class="msg-body" style="margin-top:6px;">Cobbo's on a hat-trick at this rate lol</div>
+          <div class="msg-actions">
+            <div class="vote-btn liked">👍 12</div>
+            <div class="vote-btn neutral">👎</div>
+            <div class="reply-btn">↩ Reply</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message 3 — TOP comment (orange border) -->
+      <div class="msg-row top-msg">
+        <div class="avatar-circle" style="background:#F97316;">FA</div>
+        <div class="msg-content">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+            <span style="font-size:9px;font-weight:800;letter-spacing:0.8px;color:var(--accent);">🏆 TOP</span>
+          </div>
+          <div class="msg-header">
+            <span class="msg-username">Fan#A3F2</span>
+            <span class="msg-time">8:07 PM</span>
+          </div>
+          <div class="msg-body">Broncos are on fire tonight! That Cobbo try was INSANE 🔥</div>
+          <div class="msg-actions">
+            <div class="vote-btn liked">👍 45</div>
+            <div class="vote-btn neutral">👎 2</div>
+            <div class="reply-btn">↩ Reply</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message 4 -->
+      <div class="msg-row">
+        <div class="avatar-circle" style="background:#EC4899;">BL</div>
+        <div class="msg-content">
+          <div class="msg-header">
+            <span class="msg-username">BroncosLifer</span>
+            <span class="msg-time">8:04 PM</span>
+          </div>
+          <div class="msg-body">Roosters defence is leaking. Second half belongs to BRI fr fr</div>
+          <div class="msg-actions">
+            <div class="vote-btn liked">👍 31</div>
+            <div class="vote-btn neutral">👎 4</div>
+            <div class="reply-btn">↩ Reply</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message 5 — disliked -->
+      <div class="msg-row">
+        <div class="avatar-circle" style="background:#0891B2;">ST</div>
+        <div class="msg-content">
+          <div class="msg-header">
+            <span class="msg-username">StormChaser</span>
+            <span class="msg-time">8:02 PM</span>
+          </div>
+          <div class="msg-body">Broncos always get lucky at Suncorp smh</div>
+          <div class="msg-actions">
+            <div class="vote-btn neutral">👍 2</div>
+            <div class="vote-btn disliked" style="color:var(--negative);">👎 18</div>
+            <div class="reply-btn">↩ Reply</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Input Bar -->
+    <div class="chat-input-area">
+      <div class="reply-bar">
+        ↩ Replying to <strong>Fan#A3F2</strong>: Broncos are on fire tonight...
+        <span style="margin-left:auto;color:var(--muted);cursor:pointer;">✕</span>
+      </div>
+      <div class="input-row">
+        <input class="chat-textinput" placeholder="Say something..." readonly>
+        <div class="send-btn">➤</div>
+      </div>
+      <div class="cooldown-track">
+        <div class="cooldown-bar"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════ SCREEN 3: LEADERBOARD ═══════ -->
+  <div class="screen" id="screen-leader">
+    <div class="page-header">
+      <h1 class="font-display">RANKINGS</h1>
+      <p>Top commenters by likes received</p>
+    </div>
+
+    <div class="period-tabs">
+      <div class="period-tab active">All Time</div>
+      <div class="period-tab">This Week</div>
+      <div class="period-tab">Today</div>
+    </div>
+
+    <div class="scroll-area">
+      <div class="lb-list">
+
+        <!-- Rank 1 -->
+        <div class="lb-row">
+          <div class="rank-col"><span class="trophy">🥇</span></div>
+          <div class="avatar-circle" style="background:#F97316;width:36px;height:36px;font-size:13px;">CK</div>
+          <div class="lb-name-col">
+            <div class="lb-username">CobboKing99</div>
+          </div>
+          <div class="lb-likes">👍 <span>1,284</span></div>
+        </div>
+
+        <!-- Rank 2 -->
+        <div class="lb-row">
+          <div class="rank-col"><span class="trophy">🥈</span></div>
+          <div class="avatar-circle" style="background:#8B5CF6;width:36px;height:36px;font-size:13px;">BL</div>
+          <div class="lb-name-col">
+            <div class="lb-username">BroncosLifer</div>
+          </div>
+          <div class="lb-likes">👍 <span>987</span></div>
+        </div>
+
+        <!-- Rank 3 -->
+        <div class="lb-row">
+          <div class="rank-col"><span class="trophy">🥉</span></div>
+          <div class="avatar-circle" style="background:#EC4899;width:36px;height:36px;font-size:13px;">NQ</div>
+          <div class="lb-name-col">
+            <div class="lb-username">NQCowboy</div>
+          </div>
+          <div class="lb-likes">👍 <span>743</span></div>
+        </div>
+
+        <!-- Rank 4 -->
+        <div class="lb-row">
+          <div class="rank-col"><span class="rank-num">#4</span></div>
+          <div class="avatar-circle" style="background:#0891B2;width:36px;height:36px;font-size:13px;">RK</div>
+          <div class="lb-name-col">
+            <div class="lb-username">RoosterKing</div>
+          </div>
+          <div class="lb-likes">👍 <span>521</span></div>
+        </div>
+
+        <!-- Rank 5 — Current User -->
+        <div class="lb-row me">
+          <div class="rank-col"><span class="rank-num">#5</span></div>
+          <div class="avatar-circle" style="background:#22C55E;width:36px;height:36px;font-size:13px;">FA</div>
+          <div class="lb-name-col">
+            <div class="lb-username">Fan#A3F2 <span class="you-tag">(you)</span></div>
+          </div>
+          <div class="lb-likes">👍 <span>318</span></div>
+        </div>
+
+        <!-- Rank 6 -->
+        <div class="lb-row">
+          <div class="rank-col"><span class="rank-num">#6</span></div>
+          <div class="avatar-circle" style="background:#EF4444;width:36px;height:36px;font-size:13px;">SC</div>
+          <div class="lb-name-col">
+            <div class="lb-username">StormChaser</div>
+          </div>
+          <div class="lb-likes">👍 <span>204</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item">
+        <div class="tab-icon">🏈</div>
+        <div class="tab-label">Matches</div>
+      </div>
+      <div class="tab-item active">
+        <div class="tab-icon">🏆</div>
+        <div class="tab-label">Rankings</div>
+      </div>
+      <div class="tab-item">
+        <div class="tab-icon">📊</div>
+        <div class="tab-label">Ladder</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone -->
+
+<!-- Label -->
+<div style="color:var(--muted,#8A8F98);font-size:11px;letter-spacing:0.5px;opacity:0.6;font-family:system-ui;">
+  NRL Live · Dark Mode OLED · Russo One + Chakra Petch · Expo Router
+</div>
+
+<script>
+  function showScreen(id, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen-nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // Period tab switching on leaderboard
+  document.querySelectorAll('.period-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
