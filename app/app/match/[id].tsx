@@ -91,6 +91,10 @@ export default function MatchChatScreen() {
           keyExtractor={keyExtractor}
           inverted
           contentContainerStyle={styles.messageList}
+          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          windowSize={10}
+          maxToRenderPerBatch={20}
+          removeClippedSubviews
           ItemSeparatorComponent={() => <View style={{ height: Spacing[1] }} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>

@@ -170,6 +170,25 @@ create policy "votes_update" on public.votes for update using (auth.uid() = user
 create policy "votes_delete" on public.votes for delete using (auth.uid() = user_id);
 
 -- ============================================================
+-- LEADERBOARD RPC (used by daily/weekly leaderboard tab)
+-- ============================================================
+create or replace function public.get_leaderboard(since_ts timestamptz, limit_n int)
+returns table(id uuid, username text, avatar_seed text, total_likes bigint)
+language sql stable as $$
+  select
+    p.id,
+    p.username,
+    p.avatar_seed,
+    coalesce(sum(m.likes), 0) as total_likes
+  from public.profiles p
+  left join public.messages m
+    on m.user_id = p.id and m.created_at >= since_ts
+  group by p.id, p.username, p.avatar_seed
+  order by total_likes desc
+  limit limit_n;
+$$;
+
+-- ============================================================
 -- ENABLE REALTIME
 -- ============================================================
 alter publication supabase_realtime add table public.messages;

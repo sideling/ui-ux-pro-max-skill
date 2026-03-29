@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { QueryClientProvider } from '@tanstack/react-query';
 import {
   useFonts,
@@ -18,6 +19,9 @@ import { queryClient } from '../src/lib/queryClient';
 import { useAnonymousAuth } from '../src/hooks/useAnonymousAuth';
 import { Colors } from '../src/constants/colors';
 
+// Keep splash screen visible until fonts are loaded
+SplashScreen.preventAutoHideAsync();
+
 function AuthProvider({ children }: { children: React.ReactNode }) {
   useAnonymousAuth();
   return <>{children}</>;
@@ -31,6 +35,10 @@ export default function RootLayout() {
     ChakraPetch_600SemiBold,
     ChakraPetch_700Bold,
   });
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
 
